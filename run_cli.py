@@ -5,6 +5,7 @@ run_cli.py - Chương trình dòng lệnh mô phỏng và tối ưu bài toán T
   - Input: Dữ liệu tọa độ, khoảng cách, tham số GA.
   - Output: Lộ trình tối ưu, quãng đường ngắn nhất, bảng tiến trình, xuất biểu đồ ảnh.
   - Mô hình tính toán: Trình bày rõ các bước (Khởi tạo -> Đánh giá -> Chọn lọc -> Lai ghép -> Đột biến).
+  - Mở rộng: Tùy chọn thuật toán Memetic (GA + 2-Opt) và phân tích hiệu quả Logistics xanh (Green Logistics).
 """
 
 import sys
@@ -89,6 +90,31 @@ def plot_and_save_results(ga, cities, output_dir="results"):
     plt.close()
     return chart_path
 
+def save_detailed_itinerary(itinerary, impact, initial_dist, final_dist, output_path="results/lich_trinh_chi_tiet.txt"):
+    """Lưu bảng lộ trình giao hàng turn-by-turn và phân tích kinh tế ra file văn bản."""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("=" * 75 + "\n")
+        f.write("             LỊCH TRÌNH GIAO HÀNG CHI TIẾT (TURN-BY-TURN)\n")
+        f.write("      TỐI ƯU HOÁ BẰNG GIẢI THUẬT DI TRUYỀN (GENETIC ALGORITHM)\n")
+        f.write("=" * 75 + "\n\n")
+        f.write(f"Quãng đường ban đầu:          {initial_dist:.2f} km\n")
+        f.write(f"Quãng đường sau tối ưu:       {final_dist:.2f} km\n")
+        f.write(f"Quãng đường tiết kiệm:        {impact['distance_saved_km']:.2f} km\n")
+        f.write(f"Nhiên liệu tiết kiệm:         {impact['fuel_saved_liters']:.2f} lít xăng\n")
+        f.write(f"Chi phí tiết kiệm (chuyến):   {impact['cost_saved_vnd']:,} VNĐ\n")
+        f.write(f"Chi phí tiết kiệm (30 ngày):  {impact['cost_saved_vnd'] * 30:,} VNĐ / xe\n")
+        f.write(f"Lượng CO2 giảm thiểu:         {impact['co2_reduced_kg']:.2f} kg CO2\n")
+        f.write(f"Thời gian lưu thông tiết kiệm:{impact['time_saved_minutes']} phút (~{impact['time_saved_minutes']/60:.1f} giờ)\n\n")
+        f.write("-" * 75 + "\n")
+        f.write(f"{'Chặng':<6} | {'Điểm xuất phát':<30} -> {'Điểm đến':<30} | {'Độ dài':<8} | {'Tổng tích lũy'}\n")
+        f.write("-" * 75 + "\n")
+        for leg in itinerary:
+            f.write(f"{leg['step']:<6d} | {leg['from_name']:<30} -> {leg['to_name']:<30} | {leg['distance_km']:>5.2f} km | {leg['cumulative_km']:>6.2f} km\n")
+        f.write("-" * 75 + "\n")
+        f.write(f"TỔNG QUÃNG ĐƯỜNG TOÀN CHU TRÌNH: {final_dist:.2f} km\n")
+        f.write("=" * 75 + "\n")
+
 def main():
     print("=" * 70)
     print("   CHƯƠNG TRÌNH TỐI ƯU HOÁ LỘ TRÌNH GIAO HÀNG (TSP)")
@@ -122,10 +148,14 @@ def main():
         generations = int(input("Số thế hệ tối đa (Generations) [150]: ").strip() or "150")
         cross_rate = float(input("Tỉ lệ lai ghép (Crossover Rate) [0.85]: ").strip() or "0.85")
         mut_rate = float(input("Tỉ lệ đột biến (Mutation Rate) [0.20]: ").strip() or "0.20")
+        use_memetic_str = input("Kích hoạt tối ưu cục bộ Memetic GA (2-Opt) [c/K, Enter = K]: ").strip().lower()
+        use_memetic = use_memetic_str in ["c", "y", "yes", "co", "có", "1"]
     except ValueError:
-        pop_size, generations, cross_rate, mut_rate = 100, 150, 0.85, 0.20
+        pop_size, generations, cross_rate, mut_rate, use_memetic = 100, 150, 0.85, 0.20, False
         
+    algo_name = "Memetic Algorithm (Hybrid GA + 2-Opt)" if use_memetic else "Standard Genetic Algorithm"
     print("\n-> Cấu hình xác nhận:")
+    print(f"   + Thuật toán: {algo_name}")
     print(f"   + Số lượng điểm: {len(cities)}")
     print(f"   + Quần thể: {pop_size} cá thể | Số thế hệ: {generations}")
     print(f"   + Lai ghép: Ordered Crossover (OX) - Tỉ lệ: {cross_rate * 100:.1f}%")
@@ -144,7 +174,8 @@ def main():
         crossover_rate=cross_rate,
         mutation_rate=mut_rate,
         tournament_size=5,
-        mutation_type="inversion"
+        mutation_type="inversion",
+        use_local_search=use_memetic
     )
     
     initial_dist = ga.best_individual.distance
@@ -162,25 +193,36 @@ def main():
     elapsed_time = time.time() - start_time
     final_dist = ga.best_individual.distance
     improvement = ((initial_dist - final_dist) / initial_dist) * 100
+    impact = GeneticAlgorithmTSP.calculate_economic_impact(initial_dist - final_dist)
+    itinerary = ga.get_detailed_itinerary()
     
     print("-" * 70)
     print("\n[BƯỚC 4: KẾT QUẢ ĐẦU RA (OUTPUT)]")
+    print(f"Thuật toán sử dụng:           {algo_name}")
     print(f"Thời gian thực thi:           {elapsed_time:.3f} giây")
     print(f"Quãng đường ban đầu:          {initial_dist:.2f} km")
     print(f"Quãng đường tối ưu tìm được:  {final_dist:.2f} km")
     print(f"Tỉ lệ tối ưu hoá rút ngắn:    {improvement:.2f}% (Rút ngắn được {initial_dist - final_dist:.2f} km)")
     
-    print("\nChi tiết thứ tự lộ trình tối ưu:")
-    route = ga.best_individual.genes
-    for step, c_idx in enumerate(route):
-        c = cities[c_idx]
-        print(f"  {step + 1:2d}. {c['name']:<35} ({c.get('district', '')})")
-    print(f"  --> Quay về điểm xuất phát: {cities[route[0]]['name']}")
+    print("\n--- ĐÁNH GIÁ HIỆU QUẢ KINH TẾ & MÔI TRƯỜNG (GREEN LOGISTICS) ---")
+    print(f"  * Xăng tiết kiệm được:      {impact['fuel_saved_liters']:.2f} lít xăng / chuyến")
+    print(f"  * Chi phí tiết kiệm:        {impact['cost_saved_vnd']:,} VNĐ / chuyến")
+    print(f"  * Ước tính tháng (30 ngày): {impact['cost_saved_vnd'] * 30:,} VNĐ / xe")
+    print(f"  * Giảm phát thải khí CO2:   {impact['co2_reduced_kg']:.2f} kg CO2 / chuyến")
+    print(f"  * Thời gian di chuyển giảm: {impact['time_saved_minutes']} phút (~{impact['time_saved_minutes']/60:.1f} giờ / chuyến)")
     
-    # Xuất ảnh đồ thị
-    print("\nĐang xuất biểu đồ phân tích và lộ trình...")
+    print("\nChi tiết thứ tự lộ trình tối ưu:")
+    for leg in itinerary:
+        print(f"  {leg['step']:2d}. {leg['from_name']:<35} -> {leg['to_name']} ({leg['distance_km']:.2f} km)")
+    
+    # Xuất ảnh đồ thị và file lịch trình chi tiết
+    print("\nĐang xuất biểu đồ phân tích và lịch trình chi tiết...")
     img_path = plot_and_save_results(ga, cities)
+    txt_path = "results/lich_trinh_chi_tiet.txt"
+    save_detailed_itinerary(itinerary, impact, initial_dist, final_dist, txt_path)
+    
     print(f"-> Đã lưu biểu đồ kết quả tại: {os.path.abspath(img_path)}")
+    print(f"-> Đã lưu lịch trình chi tiết:  {os.path.abspath(txt_path)}")
     print("=" * 70)
     print("CHƯƠNG TRÌNH ĐÃ HOÀN TẤT THÀNH CÔNG!")
 

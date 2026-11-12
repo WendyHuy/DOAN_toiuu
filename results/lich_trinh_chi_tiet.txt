@@ -1,0 +1,40 @@
+===========================================================================
+             LỊCH TRÌNH GIAO HÀNG CHI TIẾT (TURN-BY-TURN)
+      TỐI ƯU HOÁ BẰNG GIẢI THUẬT DI TRUYỀN (GENETIC ALGORITHM)
+===========================================================================
+
+Quãng đường ban đầu:          152.62 km
+Quãng đường sau tối ưu:       80.76 km
+Quãng đường tiết kiệm:        71.85 km
+Nhiên liệu tiết kiệm:         1.80 lít xăng
+Chi phí tiết kiệm (chuyến):   43,100 VNĐ
+Chi phí tiết kiệm (30 ngày):  1,293,000 VNĐ / xe
+Lượng CO2 giảm thiểu:         4.15 kg CO2
+Thời gian lưu thông tiết kiệm:172 phút (~2.9 giờ)
+
+---------------------------------------------------------------------------
+Chặng  | Điểm xuất phát                 -> Điểm đến                       | Độ dài   | Tổng tích lũy
+---------------------------------------------------------------------------
+1      | Khu chế xuất Tân Thuận         -> Chợ Bến Thành                  |  5.19 km |   5.19 km
+2      | Chợ Bến Thành                  -> Đại học Văn Lang (Cơ sở 1)     |  0.54 km |   5.73 km
+3      | Đại học Văn Lang (Cơ sở 1)     -> Kho Tổng (Bưu điện TT Sài Gòn) |  0.72 km |   6.45 km
+4      | Kho Tổng (Bưu điện TT Sài Gòn) -> Hồ Con Rùa                     |  0.63 km |   7.08 km
+5      | Hồ Con Rùa                     -> Hàng Xanh Interchange          |  2.80 km |   9.88 km
+6      | Hàng Xanh Interchange          -> Landmark 81 (Vinhomes)         |  1.36 km |  11.24 km
+7      | Landmark 81 (Vinhomes)         -> Chợ Thủ Đức                    |  6.87 km |  18.11 km
+8      | Chợ Thủ Đức                    -> Khu Công nghệ Cao (SHTP)       |  3.99 km |  22.10 km
+9      | Khu Công nghệ Cao (SHTP)       -> ĐHQG TP.HCM (Làng Đại học)     |  3.45 km |  25.56 km
+10     | ĐHQG TP.HCM (Làng Đại học)     -> Bến xe Miền Đông Cũ            | 13.45 km |  39.01 km
+11     | Bến xe Miền Đông Cũ            -> Công viên Gia Định             |  4.10 km |  43.11 km
+12     | Công viên Gia Định             -> Đại học Văn Lang (Cơ sở 3)     |  1.91 km |  45.02 km
+13     | Đại học Văn Lang (Cơ sở 3)     -> Bến xe An Sương                |  5.23 km |  50.25 km
+14     | Bến xe An Sương                -> Sân bay Tân Sơn Nhất           |  5.87 km |  56.12 km
+15     | Sân bay Tân Sơn Nhất           -> Công viên Hoàng Văn Thụ        |  1.72 km |  57.84 km
+16     | Công viên Hoàng Văn Thụ        -> Công viên Đầm Sen              |  5.42 km |  63.26 km
+17     | Công viên Đầm Sen              -> Aeon Mall Bình Tân             |  3.55 km |  66.81 km
+18     | Aeon Mall Bình Tân             -> Bến xe Chợ Lớn                 |  4.42 km |  71.23 km
+19     | Bến xe Chợ Lớn                 -> Crescent Mall (Phú Mỹ Hưng)    |  7.06 km |  78.29 km
+20     | Crescent Mall (Phú Mỹ Hưng)    -> Khu chế xuất Tân Thuận         |  2.48 km |  80.76 km
+---------------------------------------------------------------------------
+TỔNG QUÃNG ĐƯỜNG TOÀN CHU TRÌNH: 80.76 km
+===========================================================================

@@ -9,6 +9,8 @@ Bao gồm:
   - Lai ghép có thứ tự (Ordered Crossover - OX)
   - Đột biến (Inversion Mutation & Swap Mutation)
   - Chiến lược bảo tồn cá thể ưu tú (Elitism)
+  - Mở rộng: Thuật toán Memetic (Hybrid GA kết hợp 2-Opt Local Search)
+  - Đánh giá tác động kinh tế & môi trường (Green Logistics)
 """
 
 import random
@@ -45,6 +47,7 @@ class Individual:
 class GeneticAlgorithmTSP:
     """
     Lớp điều khiển toàn bộ tiến trình tối ưu hoá Genetic Algorithm cho TSP.
+    Hỗ trợ cả GA tiêu chuẩn (Pure GA) và GA lai ghép (Memetic Algorithm với 2-Opt).
     """
     def __init__(self, cities, distance_matrix, 
                  pop_size=100, 
@@ -52,7 +55,8 @@ class GeneticAlgorithmTSP:
                  crossover_rate=0.85, 
                  mutation_rate=0.15, 
                  tournament_size=5,
-                 mutation_type="inversion"):
+                 mutation_type="inversion",
+                 use_local_search=False):
         self.cities = cities
         self.num_cities = len(cities)
         self.distance_matrix = distance_matrix
@@ -64,6 +68,7 @@ class GeneticAlgorithmTSP:
         self.mutation_rate = mutation_rate
         self.tournament_size = tournament_size
         self.mutation_type = mutation_type # "inversion" hoặc "swap"
+        self.use_local_search = use_local_search # Memetic Algorithm (2-Opt)
         
         # Trạng thái thuật toán
         self.population = []
@@ -175,6 +180,38 @@ class GeneticAlgorithmTSP:
         else:
             self.mutate_inversion(individual)
 
+    def apply_2opt(self, individual):
+        """
+        Tối ưu hoá cục bộ 2-Opt (Local Search) cho một cá thể.
+        Gỡ bỏ các cạnh giao nhau để tinh chỉnh nghiệm đạt cực tiểu địa phương.
+        """
+        route = individual.genes.copy()
+        n = len(route)
+        improved = True
+        
+        while improved:
+            improved = False
+            for i in range(1, n - 1):
+                for j in range(i + 1, n):
+                    if j - i == 1:
+                        continue
+                    # Chi phí cũ: (i-1 -> i) + (j -> j+1)
+                    p_prev, p_i = route[i - 1], route[i]
+                    p_j, p_next = route[j], route[(j + 1) % n]
+                    d_old = self.distance_matrix[p_prev][p_i] + self.distance_matrix[p_j][p_next]
+                    d_new = self.distance_matrix[p_prev][p_j] + self.distance_matrix[p_i][p_next]
+                    
+                    if d_new < d_old - 1e-5:
+                        route[i:j + 1] = reversed(route[i:j + 1])
+                        improved = True
+                        break
+                if improved:
+                    break
+                    
+        individual.genes = route
+        individual.calculate_fitness(self.distance_matrix)
+        return individual
+
     def evolve_generation(self):
         """Tiến hành tiến hóa 1 thế hệ mới."""
         self.current_generation += 1
@@ -206,6 +243,12 @@ class GeneticAlgorithmTSP:
             if len(new_population) < self.pop_size:
                 new_population.append(child2)
                 
+        # 3. Kỹ thuật Memetic (Local Search trên cá thể tốt nhất nếu được kích hoạt)
+        if self.use_local_search:
+            # Tối ưu cục bộ cho cá thể dẫn đầu để đẩy nhanh hội tụ
+            best_in_pop = new_population[0]
+            self.apply_2opt(best_in_pop)
+                
         self.population = new_population
         self.update_best()
         
@@ -221,3 +264,53 @@ class GeneticAlgorithmTSP:
             if verbose and (gen % log_interval == 0 or gen == max_generations):
                 print(f"[Thế hệ {gen:3d}] Quãng đường tốt nhất: {self.best_individual.distance:.2f} km | Trung bình: {self.history_avg_distance[-1]:.2f} km")
         return self.best_individual
+
+    @staticmethod
+    def calculate_economic_impact(distance_saved, fuel_consumption=0.025, fuel_price=24000, avg_speed=25.0):
+        """
+        Tính toán hiệu quả kinh tế và môi trường (Green Logistics):
+          - Nhiên liệu tiết kiệm (lít xăng): Định mức xe máy 2.5 lít / 100 km (0.025 L/km)
+          - Chi phí tiết kiệm (VNĐ): Đơn giá xăng RON 95 ~24.000 VNĐ/L
+          - Giảm phát thải CO2 (kg): 1 lít xăng tiêu thụ sinh ~2.31 kg CO2
+          - Thời gian tiết kiệm (phút): Vận tốc trung bình trong đô thị ~25 km/h
+        """
+        dist = max(0.0, float(distance_saved))
+        fuel_liters = dist * fuel_consumption
+        cost_vnd = fuel_liters * fuel_price
+        co2_kg = fuel_liters * 2.31
+        time_minutes = (dist / avg_speed) * 60.0
+        
+        return {
+            "distance_saved_km": round(dist, 2),
+            "fuel_saved_liters": round(fuel_liters, 2),
+            "cost_saved_vnd": int(round(cost_vnd, -2)),
+            "co2_reduced_kg": round(co2_kg, 2),
+            "time_saved_minutes": int(round(time_minutes))
+        }
+
+    def get_detailed_itinerary(self):
+        """Trả về danh sách các chặng đi chi tiết (Turn-by-turn)."""
+        route = self.best_individual.genes
+        n = len(route)
+        legs = []
+        cumulative = 0.0
+        
+        for i in range(n):
+            from_idx = route[i]
+            to_idx = route[(i + 1) % n]
+            c_from = self.cities[from_idx]
+            c_to = self.cities[to_idx]
+            leg_dist = self.distance_matrix[from_idx][to_idx]
+            cumulative += leg_dist
+            
+            legs.append({
+                "step": i + 1,
+                "from_name": c_from["name"],
+                "from_district": c_from.get("district", ""),
+                "to_name": c_to["name"],
+                "to_district": c_to.get("district", ""),
+                "distance_km": round(leg_dist, 2),
+                "cumulative_km": round(cumulative, 2)
+            })
+            
+        return legs
