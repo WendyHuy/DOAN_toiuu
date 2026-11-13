@@ -61,7 +61,7 @@ def step1_prepare_base_template():
     print("-> Đã cập nhật xong trang bìa chuẩn mẫu trường!")
 
 
-def add_p(doc, text="", bold=False, italic=False, size=13, align=WD_ALIGN_PARAGRAPH.JUSTIFY, space_after=5, space_before=0, line_spacing=1.25):
+def add_p(doc, text="", bold=False, italic=False, size=13, align=WD_ALIGN_PARAGRAPH.JUSTIFY, space_after=4, space_before=0, line_spacing=1.2):
     """Thêm đoạn văn chuẩn Times New Roman theo thể thức quy định."""
     p = doc.add_paragraph()
     p.alignment = align
@@ -88,8 +88,8 @@ def add_h(doc, text, level=1):
     p.paragraph_format.keep_with_next = True
     
     if level == 1:
-        p.paragraph_format.space_before = Pt(14)
-        p.paragraph_format.space_after = Pt(6)
+        p.paragraph_format.space_before = Pt(11)
+        p.paragraph_format.space_after = Pt(4)
         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
         run = p.runs[0] if p.runs else p.add_run(text)
         run.text = text
@@ -98,8 +98,8 @@ def add_h(doc, text, level=1):
         run.font.size = Pt(14)
         run.font.color.rgb = RGBColor(0, 32, 96) # Xanh đậm trang trọng
     elif level == 2:
-        p.paragraph_format.space_before = Pt(10)
-        p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.space_before = Pt(8)
+        p.paragraph_format.space_after = Pt(3)
         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
         run = p.runs[0] if p.runs else p.add_run(text)
         run.text = text
@@ -108,7 +108,7 @@ def add_h(doc, text, level=1):
         run.font.size = Pt(13)
         run.font.color.rgb = RGBColor(0, 0, 0)
     else:
-        p.paragraph_format.space_before = Pt(6)
+        p.paragraph_format.space_before = Pt(5)
         p.paragraph_format.space_after = Pt(2)
         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
         run = p.runs[0] if p.runs else p.add_run(text)
@@ -116,7 +116,7 @@ def add_h(doc, text, level=1):
         run.bold = True
         run.italic = True
         run.font.name = "Times New Roman"
-        run.font.size = Pt(13)
+        run.font.size = Pt(12.5)
         run.font.color.rgb = RGBColor(0, 0, 0)
         
     rPr = run._element.get_or_add_rPr()
@@ -125,25 +125,56 @@ def add_h(doc, text, level=1):
     return p
 
 
-def add_img(doc, img_path, width_in=5.0, caption=""):
+def add_img(doc, img_path, width_in=4.5, caption=""):
     """Chèn hình ảnh canh giữa và thêm chú thích chuẩn."""
     if os.path.exists(img_path):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_before = Pt(6)
+        p.paragraph_format.space_before = Pt(4)
         p.paragraph_format.space_after = Pt(2)
         run = p.add_run()
         run.add_picture(img_path, width=Inches(width_in))
         if caption:
             p_cap = doc.add_paragraph()
             p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            p_cap.paragraph_format.space_before = Pt(2)
-            p_cap.paragraph_format.space_after = Pt(6)
+            p_cap.paragraph_format.space_before = Pt(1)
+            p_cap.paragraph_format.space_after = Pt(4)
             run_cap = p_cap.add_run(caption)
             run_cap.font.name = "Times New Roman"
-            run_cap.font.size = Pt(10.5)
+            run_cap.font.size = Pt(10)
             run_cap.italic = True
             run_cap.font.color.rgb = RGBColor(60, 60, 60)
+
+
+def add_code_block(doc, code_str, caption=""):
+    """Chèn khối mã nguồn font Consolas vào khung bảng viền xám nhạt chuyên nghiệp."""
+    t = doc.add_table(rows=1, cols=1)
+    t.style = "Table Grid"
+    t.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = t.rows[0].cells[0]
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="F8F9FA"/>')
+    tcPr.append(shd)
+
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(3)
+    p.paragraph_format.space_after = Pt(3)
+    p.paragraph_format.line_spacing = 1.12
+    run = p.add_run(code_str)
+    run.font.name = "Consolas"
+    run.font.size = Pt(8.0)
+    run.font.color.rgb = RGBColor(25, 25, 25)
+
+    if caption:
+        p_cap = doc.add_paragraph()
+        p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap.paragraph_format.space_before = Pt(1)
+        p_cap.paragraph_format.space_after = Pt(4)
+        run_cap = p_cap.add_run(caption)
+        run_cap.font.name = "Times New Roman"
+        run_cap.font.size = Pt(9.5)
+        run_cap.italic = True
+        run_cap.font.color.rgb = RGBColor(80, 80, 80)
 
 
 def style_table_header(row):
@@ -350,89 +381,158 @@ def step2_populate_content():
     add_p(doc, "• Bước 3 (Đột biến Inversion Mutation): Chọn đoạn ngẫu nhiên [2, 0, 4] trong cá thể Con và đảo ngược thứ tự -> chuỗi đột biến = [3, 1, 4, 0, 2, 5].")
     add_p(doc, "• Bước 4 (Chọn lọc & Tiến hóa qua 50 thế hệ): Nhờ áp dụng toán tử di truyền, quần thể nhanh chóng đào thải các liên kết cắt chéo, đưa chiều dài chu trình từ 20.85 km xuống nghiệm tối ưu toàn cục tuyệt đối 20.26 km chỉ sau 0.02 giây.")
 
-    add_h(doc, "2.3. Cài đặt mã nguồn chương trình", level=2)
-    add_p(doc, "Chương trình được thiết kế theo mô hình hướng đối tượng (OOP) module hóa chuẩn mực, gồm 4 tệp mã nguồn chính:")
-    add_p(doc, "• src/cities_data.py: Định nghĩa danh mục 20 địa điểm và hàm xây dựng ma trận khoảng cách Euclidean.")
-    add_p(doc, "• src/genetic_algorithm.py: Chứa lớp Individual và lớp GeneticAlgorithmTSP với toàn bộ logic GA thuần và Memetic 2-Opt.")
-    add_p(doc, "• app_gui.py: Giao diện đồ họa người dùng trực quan bằng Tkinter và Matplotlib, hỗ trợ mô phỏng thời gian thực (live animation).")
-    add_p(doc, "• run_cli.py: Giao diện dòng lệnh thực thi, in bảng ma trận, chạy tối ưu và xuất lộ trình turn-by-turn ra tệp văn bản.")
+    add_h(doc, "2.3. Cài đặt mã nguồn và Giải thích chi tiết các thuật toán", level=2)
+    add_p(doc, "Chương trình được thiết kế theo mô hình hướng đối tượng (OOP) module hóa nghiêm ngặt theo chuẩn PEP 8. Toàn bộ logic tối ưu hoá di truyền được tự cài đặt từ đầu (scratch) trong module src/genetic_algorithm.py mà không phụ thuộc vào bất kỳ thư viện tối ưu hóa đóng gói sẵn nào. Dưới đây là phân tích chi tiết từng khối thuật toán cốt lõi:")
 
-    add_h(doc, "2.3.1. Cấu trúc module và hàm tính Fitness", level=3)
+    # 2.3.1
+    add_h(doc, "2.3.1. Cấu trúc dữ liệu Cá thể (Individual) & Hàm thích nghi (Fitness Function)", level=3)
     code_f = (
         "class Individual:\n"
-        "    def __init__(self, genes):\n"
-        "        self.genes = list(genes)  # Hoán vị danh sách các địa điểm\n"
+        "    \"\"\"Đại diện cho một cá thể (một lộ trình giao hàng khép kín).\"\"\"\n"
+        "    def __init__(self, genes=None):\n"
+        "        # genes: Chuỗi hoán vị gồm N địa điểm từ 0 đến N-1\n"
+        "        self.genes = list(genes) if genes is not None else []\n"
         "        self.distance = 0.0\n"
         "        self.fitness = 0.0\n\n"
         "    def calculate_fitness(self, distance_matrix):\n"
-        "        total_dist = sum(distance_matrix[self.genes[i]][self.genes[i+1]]\n"
+        "        \"\"\"Tính tổng khoảng cách và độ thích nghi (Fitness).\"\"\"\n"
+        "        total_dist = sum(distance_matrix[self.genes[i]][self.genes[i + 1]]\n"
         "                         for i in range(len(self.genes) - 1))\n"
-        "        total_dist += distance_matrix[self.genes[-1]][self.genes[0]]  # Khép kín chu trình\n"
+        "        total_dist += distance_matrix[self.genes[-1]][self.genes[0]]  # Chặng khép chu trình về Kho\n"
         "        self.distance = round(total_dist, 3)\n"
+        "        # Độ thích nghi tỉ lệ nghịch với tổng quãng đường (cộng 1e-6 chống chia cho 0)\n"
         "        self.fitness = 1000.0 / (self.distance + 1e-6)\n"
         "        return self.fitness"
     )
-    p_code1 = doc.add_paragraph()
-    p_code1.paragraph_format.space_before = Pt(3)
-    p_code1.paragraph_format.space_after = Pt(6)
-    p_code1.paragraph_format.line_spacing = 1.15
-    r1 = p_code1.add_run(code_f)
-    r1.font.name = "Consolas"
-    r1.font.size = Pt(8.5)
+    add_code_block(doc, code_f, "Khối mã 2.1: Cấu trúc cá thể Individual và hàm tính toán Fitness")
+    add_p(doc, "• Bản chất toán học: Nghiệm bài toán TSP được biểu diễn bằng một hoán vị thứ tự các đỉnh π = [c_0, c_1, ..., c_{N-1}]. Chu trình giao hàng bắt buộc phải khép kín (xe xuất phát từ Kho Tổng c_0 và quay trở về đúng Kho Tổng), do đó ngoài tổng cự ly qua N-1 chặng liên tiếp, hàm phải cộng thêm chặng cuối từ c_{N-1} về c_0.")
+    add_p(doc, "• Hàm thích nghi (Fitness Mapping): Mục tiêu của TSP là tìm min D(π). Để phù hợp với nguyên lý chọn lọc tự nhiên của GA (cá thể thích nghi tốt hơn có fitness cao hơn), hàm fitness được nghịch đảo theo công thức: Fitness = 1000.0 / (D + 1e-6). Hằng số 1e-6 loại bỏ hoàn toàn nguy cơ chia cho 0, hệ số 1000 giúp chuẩn hóa thang đo độ thích nghi. Độ phức tạp tính toán: O(N) thời gian, O(N) không gian bộ nhớ.")
 
-    add_h(doc, "2.3.2. Toán tử lai ghép Ordered Crossover (OX) và Đột biến Inversion", level=3)
+    # 2.3.2
+    add_h(doc, "2.3.2. Toán tử Chọn lọc giải đấu (Tournament Selection, k=5)", level=3)
+    code_sel = (
+        "def selection_tournament(self):\n"
+        "    \"\"\"Phương pháp chọn lọc giải đấu: Bốc ngẫu nhiên k cá thể và lấy cá thể tốt nhất.\"\"\"\n"
+        "    tournament = random.sample(self.population, self.tournament_size)  # k = 5\n"
+        "    tournament.sort(key=lambda ind: ind.fitness, reverse=True)\n"
+        "    return tournament[0]  # Cá thể chiến thắng giải đấu được chọn làm cha/mẹ"
+    )
+    add_code_block(doc, code_sel, "Khối mã 2.2: Toán tử chọn lọc giải đấu Tournament Selection")
+    add_p(doc, "• Cơ chế chọn lọc: Lấy mẫu ngẫu nhiên k=5 cá thể từ quần thể hiện tại mà không hoàn lại, sau đó chọn ra cá thể có fitness cao nhất để đưa vào tập cha mẹ sinh sản.")
+    add_p(doc, "• Ưu việt so với Roulette Wheel: Phương pháp Roulette Wheel phân bổ xác suất tỉ lệ thuận theo fitness tuyệt đối, dẫn đến nhược điểm nghiêm trọng: ở các thế hệ ban đầu, một cá thể ngẫu nhiên vượt trội sẽ độc chiếm xác suất chọn lọc và nhân bản ồ ạt, làm suy giảm đa dạng di truyền và gây hội tụ non (premature convergence). Ngược lại, Tournament Selection duy trì áp lực chọn lọc (Selection Pressure) ổn định, cho phép các cá thể trung bình vẫn có cơ hội sinh sản nếu không phải đối đầu trực diện cá thể mạnh nhất trong nhóm nhỏ k=5. Độ phức tạp: O(k) cực nhanh.")
+
+    # 2.3.3
+    add_h(doc, "2.3.3. Toán tử Lai ghép có thứ tự (Ordered Crossover - OX)", level=3)
     code_ox = (
         "def ordered_crossover(self, parent1, parent2):\n"
-        "    size = len(parent1.genes)\n"
-        "    idx1, idx2 = sorted(random.sample(range(size), 2))\n"
-        "    child_genes = [None] * size\n"
-        "    child_genes[idx1:idx2+1] = parent1.genes[idx1:idx2+1]\n"
-        "    p2_genes = parent2.genes[idx2+1:] + parent2.genes[:idx2+1]\n"
-        "    rem = [g for g in p2_genes if g not in set(child_genes[idx1:idx2+1])]\n"
-        "    fill_indices = list(range(idx2+1, size)) + list(range(0, idx1))\n"
-        "    for idx, gene in zip(fill_indices, rem):\n"
-        "        child_genes[idx] = gene\n"
-        "    return Individual(child_genes)\n\n"
-        "def mutate_inversion(self, individual):\n"
-        "    if random.random() < self.mutation_rate:\n"
-        "        idx1, idx2 = sorted(random.sample(range(self.num_cities), 2))\n"
-        "        individual.genes[idx1:idx2+1] = reversed(individual.genes[idx1:idx2+1])"
+        "    \"\"\"Toán tử lai ghép OX bảo toàn tính hợp lệ của hoán vị không sinh trùng lặp.\"\"\"\n"
+        "    if random.random() > self.crossover_rate:  # Tỉ lệ lai ghép 85%\n"
+        "        return copy.deepcopy(parent1), copy.deepcopy(parent2)\n\n"
+        "    def make_child(p1, p2):\n"
+        "        size = len(p1.genes)\n"
+        "        child_genes = [None] * size\n"
+        "        # Bước 1: Chọn ngẫu nhiên 2 điểm cắt trên Parent 1\n"
+        "        idx1, idx2 = sorted(random.sample(range(size), 2))\n"
+        "        child_genes[idx1:idx2 + 1] = p1.genes[idx1:idx2 + 1]\n"
+        "        copied_set = set(child_genes[idx1:idx2 + 1])\n"
+        "        # Bước 2: Duyệt vòng tròn Parent 2 từ sau điểm cắt idx2+1 để lấy gen bù\n"
+        "        p2_genes = p2.genes[idx2 + 1:] + p2.genes[:idx2 + 1]\n"
+        "        remaining_genes = [g for g in p2_genes if g not in copied_set]\n"
+        "        # Bước 3: Điền các gen còn lại vào vị trí trống\n"
+        "        fill_indices = list(range(idx2 + 1, size)) + list(range(0, idx1))\n"
+        "        for i, gene in zip(fill_indices, remaining_genes):\n"
+        "            child_genes[i] = gene\n"
+        "        return Individual(child_genes)\n\n"
+        "    return make_child(parent1, parent2), make_child(parent2, parent1)"
     )
-    p_code2 = doc.add_paragraph()
-    p_code2.paragraph_format.space_before = Pt(3)
-    p_code2.paragraph_format.space_after = Pt(6)
-    p_code2.paragraph_format.line_spacing = 1.15
-    r2 = p_code2.add_run(code_ox)
-    r2.font.name = "Consolas"
-    r2.font.size = Pt(8.5)
+    add_code_block(doc, code_ox, "Khối mã 2.3: Toán tử lai ghép có thứ tự Ordered Crossover (OX)")
+    add_p(doc, "• Giải quyết bài toán hoán vị: Phép lai ghép nhị phân thông thường (1 điểm cắt, 2 điểm cắt) khi áp dụng lên TSP sẽ tạo ra cá thể con bị trùng lặp hoặc thiếu thành phố (vi phạm ràng buộc ghé thăm mỗi điểm đúng 1 lần).")
+    add_p(doc, "• Cơ chế bảo toàn hoán vị hợp lệ 100%: Toán tử OX giữ nguyên đoạn gen giữa [idx1:idx2] từ Parent 1 để bảo tồn các cụm liên kết chặng tốt (building blocks), sau đó duyệt tuần hoàn Parent 2 để bù các gen còn lại theo đúng thứ tự xuất hiện mà chưa có trong con. Nhờ sử dụng cấu trúc hash set tra cứu O(1), thuật toán đảm bảo 100% con sinh ra là hoán vị hợp lệ mà không cần bước sửa sai phụ trợ (Repair Mechanism). Độ phức tạp: O(N) thời gian và bộ nhớ.")
 
-    add_h(doc, "2.3.3. Thuật toán tối ưu hóa cục bộ 2-Opt", level=3)
+    # 2.3.4
+    add_h(doc, "2.3.4. Toán tử Đột biến đảo đoạn (Inversion Mutation)", level=3)
+    code_mut = (
+        "def mutate_inversion(self, individual):\n"
+        "    \"\"\"Đột biến đảo đoạn: Đảo ngược thứ tự các gen nằm giữa 2 vị trí ngẫu nhiên.\"\"\"\n"
+        "    if random.random() < self.mutation_rate:  # Tỉ lệ đột biến 20%\n"
+        "        idx1, idx2 = sorted(random.sample(range(self.num_cities), 2))\n"
+        "        individual.genes[idx1:idx2 + 1] = reversed(individual.genes[idx1:idx2 + 1])\n\n"
+        "def mutate_swap(self, individual):\n"
+        "    \"\"\"Đột biến hoán vị (dùng để đối chứng thực nghiệm): Đổi chỗ 2 gen đơn lẻ.\"\"\"\n"
+        "    if random.random() < self.mutation_rate:\n"
+        "        idx1, idx2 = random.sample(range(self.num_cities), 2)\n"
+        "        individual.genes[idx1], individual.genes[idx2] = individual.genes[idx2], individual.genes[idx1]"
+    )
+    add_code_block(doc, code_mut, "Khối mã 2.4: Toán tử đột biến Inversion Mutation và Swap Mutation")
+    add_p(doc, "• Bản chất hình học tháo gỡ đường cắt chéo (2-Opt Uncrossing): Theo bất đẳng thức tam giác trong hình học phẳng, đoạn đường tự cắt chéo (crossing) luôn dài hơn đoạn đường không cắt chéo: d(A, C) + d(B, D) > d(A, B) + d(C, D). Phép đảo ngược một đoạn gen con [idx1:idx2] trong Inversion Mutation chính là thao tác đảo chiều lộ trình di chuyển của phân đoạn đó, giúp tháo gỡ lập tức nút thắt chéo và rút ngắn cự ly đáng kể.")
+    add_p(doc, "• Vượt trội so với Swap Mutation: Swap Mutation chỉ đổi chỗ 2 đỉnh rời rạc, làm đứt gãy cùng lúc 4 cạnh và thường vô tình tạo ra các nút giao chéo mới. Ngược lại, Inversion Mutation chỉ ngắt 2 cạnh biên và đảo chiều đoạn trong, bảo toàn nguyên vẹn tính liên kết nội bộ, giúp thuật toán thoát khỏi bẫy cực tiểu địa phương cực kỳ hiệu quả.")
+
+    # 2.3.5
+    add_h(doc, "2.3.5. Thuật toán tối ưu hóa cục bộ Memetic 2-Opt (Local Search)", level=3)
     code_2opt = (
-        "def two_opt_local_search(self, individual):\n"
-        "    route = list(individual.genes)\n"
+        "def apply_2opt(self, individual):\n"
+        "    \"\"\"Tối ưu hóa cục bộ 2-Opt tháo gỡ toàn bộ các cặp cạnh cắt chéo trên chu trình.\"\"\"\n"
+        "    route = individual.genes.copy()\n"
+        "    n = len(route)\n"
         "    improved = True\n"
         "    while improved:\n"
         "        improved = False\n"
-        "        for i in range(1, len(route) - 1):\n"
-        "            for j in range(i + 1, len(route)):\n"
-        "                # Tính delta cự ly khi đảo ngược đoạn [i:j]\n"
-        "                d_old = (self.distance_matrix[route[i-1]][route[i]] +\n"
-        "                         self.distance_matrix[route[j]][route[(j+1) % len(route)]])\n"
-        "                d_new = (self.distance_matrix[route[i-1]][route[j]] +\n"
-        "                         self.distance_matrix[route[i]][route[(j+1) % len(route)]])\n"
-        "                if d_new < d_old - 1e-6:\n"
-        "                    route[i:j+1] = reversed(route[i:j+1])\n"
+        "        for i in range(1, n - 1):\n"
+        "            for j in range(i + 1, n):\n"
+        "                if j - i == 1: continue\n"
+        "                p_prev, p_i = route[i - 1], route[i]\n"
+        "                p_j, p_next = route[j], route[(j + 1) % n]\n"
+        "                # Kỹ thuật Delta Evaluation O(1): So sánh cự ly 2 cạnh cũ và 2 cạnh mới\n"
+        "                d_old = self.distance_matrix[p_prev][p_i] + self.distance_matrix[p_j][p_next]\n"
+        "                d_new = self.distance_matrix[p_prev][p_j] + self.distance_matrix[p_i][p_next]\n"
+        "                if d_new < d_old - 1e-5:  # Nếu phương án mới ngắn hơn\n"
+        "                    route[i:j + 1] = reversed(route[i:j + 1])\n"
         "                    improved = True\n"
+        "                    break\n"
+        "            if improved: break\n"
         "    individual.genes = route\n"
-        "    individual.calculate_fitness(self.distance_matrix)"
+        "    individual.calculate_fitness(self.distance_matrix)\n"
+        "    return individual"
     )
-    p_code3 = doc.add_paragraph()
-    p_code3.paragraph_format.space_before = Pt(3)
-    p_code3.paragraph_format.space_after = Pt(6)
-    p_code3.paragraph_format.line_spacing = 1.15
-    r3 = p_code3.add_run(code_2opt)
-    r3.font.name = "Consolas"
-    r3.font.size = Pt(8.5)
+    add_code_block(doc, code_2opt, "Khối mã 2.5: Thuật toán tối ưu hóa cục bộ Memetic 2-Opt")
+    add_p(doc, "• Kỹ thuật đánh giá chênh lệch nhanh (Delta Evaluation O(1)): Khi kiểm tra khả năng đảo đoạn giữa 2 cạnh (p_prev -> p_i) và (p_j -> p_next), thuật toán không cần duyệt lại toàn bộ chu trình O(N), mà chỉ tính hiệu cự ly của 4 cạnh liên quan với chi phí O(1). Nếu d_new < d_old - 1e-5, đoạn đường được đảo ngược ngay lập tức.")
+    add_p(doc, "• Sức mạnh của kiến trúc Memetic: GA truyền thống có ưu thế tìm kiếm diện rộng toàn cục (Global Exploration) nhưng hội tụ chậm ở giai đoạn tinh chỉnh cuối. Bằng cách tích hợp 2-Opt (Local Exploitation) lên cá thể dẫn đầu sau mỗi thế hệ, thuật toán triệt tiêu hoàn toàn các cạnh cắt chéo, giúp quần thể hội tụ về nghiệm tối ưu sâu hơn với tốc độ cực nhanh.")
+
+    # 2.3.6
+    add_h(doc, "2.3.6. Vòng lặp tiến hóa tổng thể (Evolutionary Cycle) & Chiến lược Elitism", level=3)
+    code_engine = (
+        "def evolve_generation(self):\n"
+        "    \"\"\"Quy trình tiến hóa đồng bộ một thế hệ mới.\"\"\"\n"
+        "    self.current_generation += 1\n"
+        "    new_population = []\n"
+        "    # 1. Chiến lược Elitism: Bảo tồn nguyên vẹn Top E=5 cá thể xuất sắc nhất\n"
+        "    self.population.sort(key=lambda ind: ind.fitness, reverse=True)\n"
+        "    for i in range(self.elite_size):\n"
+        "        new_population.append(copy.deepcopy(self.population[i]))\n"
+        "    # 2. Sinh các cá thể con cho đến khi đủ quy mô quần thể P=100\n"
+        "    while len(new_population) < self.pop_size:\n"
+        "        parent1 = self.selection_tournament()\n"
+        "        parent2 = self.selection_tournament()\n"
+        "        child1, child2 = self.ordered_crossover(parent1, parent2)\n"
+        "        self.mutate(child1)\n"
+        "        self.mutate(child2)\n"
+        "        child1.calculate_fitness(self.distance_matrix)\n"
+        "        child2.calculate_fitness(self.distance_matrix)\n"
+        "        new_population.append(child1)\n"
+        "        if len(new_population) < self.pop_size:\n"
+        "            new_population.append(child2)\n"
+        "    # 3. Kỹ thuật Memetic: Áp dụng 2-Opt cục bộ lên cá thể tốt nhất thế hệ\n"
+        "    if self.use_local_search:\n"
+        "        self.apply_2opt(new_population[0])\n"
+        "    self.population = new_population\n"
+        "    self.update_best()\n"
+        "    self.history_best_distance.append(self.best_individual.distance)\n"
+        "    avg_d = sum(ind.distance for ind in self.population) / self.pop_size\n"
+        "    self.history_avg_distance.append(avg_d)"
+    )
+    add_code_block(doc, code_engine, "Khối mã 2.6: Vòng lặp tiến hóa toàn diện kết hợp Elitism và Memetic")
+    add_p(doc, "• Tính chất bảo toàn đơn điệu (Monotonic Elitism): Bằng cách giữ lại Top E=5 cá thể ưu tú nhất chuyển thẳng sang thế hệ tiếp theo mà không qua đột biến hay lai ghép, thuật toán bảo đảm chất lượng nghiệm tốt nhất của quần thể là một hàm đơn điệu không tăng: D_best(g+1) <= D_best(g). Nghiệm xuất sắc đã tìm được sẽ không bao giờ bị mất đi.")
+    add_p(doc, "• Tính đồng bộ của bộ máy tiến hóa: Sự phối hợp nhịp nhàng giữa Tournament Selection (chọn lọc cha mẹ), Ordered Crossover (tái tổ hợp đặc tính tốt), Inversion Mutation (duy trì đa dạng, thoát bẫy cực trị), Elitism (giữ vững tinh hoa) và Memetic 2-Opt (tối ưu cục bộ) tạo nên một cỗ máy tìm kiếm metaheuristic toàn diện, giải quyết trọn vẹn bài toán TSP 20 địa điểm trong thời gian chỉ 0.089 giây.")
 
     # -------------------------------------------------------------
     # 2.4. Kết quả thực nghiệm và trực quan hóa
@@ -577,10 +677,8 @@ def step2_populate_content():
     add_p(doc, "3. Thêm ràng buộc cửa sổ thời gian (VRPTW - Vehicle Routing Problem with Time Windows): Đáp ứng yêu cầu khách hàng chỉ nhận hàng trong những khoảng giờ cố định.")
     add_p(doc, "4. Ứng dụng điện toán đám mây: Triển khai backend tối ưu hóa dưới dạng RESTful API trên nền tảng Cloud (Google Cloud / AWS) để tích hợp vào ứng dụng di động cho tài xế giao hàng.")
 
-    doc.add_page_break()
-
     # -------------------------------------------------------------
-    # TRANG 20: TÀI LIỆU THAM KHẢO
+    # TÀI LIỆU THAM KHẢO
     # -------------------------------------------------------------
     add_h(doc, "TÀI LIỆU THAM KHẢO", level=1)
     
